@@ -18,7 +18,7 @@ const MultipleChoiceQuestion: React.FC<MultipleChoiceQuestionProps> = ({ questio
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [isAnswered, setIsAnswered] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
-  const { incrementScore, incrementErrors, getNextQuestion, addWeakness } = useQuiz();
+  const { incrementScore, incrementErrors, getNextQuestion, addWeakness, addWrongQuestion } = useQuiz();
 
   const handleOptionSelect = (index: number) => {
     if (isAnswered) return;
@@ -34,6 +34,7 @@ const MultipleChoiceQuestion: React.FC<MultipleChoiceQuestionProps> = ({ questio
     } else {
       incrementErrors();
       addWeakness(question.category);
+      addWrongQuestion({ ...question, type: 'multiple-choice' });
     }
     
     // Move to next question after a delay

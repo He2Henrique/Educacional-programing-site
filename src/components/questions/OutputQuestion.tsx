@@ -14,32 +14,34 @@ interface OutputQuestionProps {
 }
 
 const OutputQuestion: React.FC<OutputQuestionProps> = ({ question }) => {
-  const [answer, setAnswer] = useState('');
+  const [userAnswer, setUserAnswer] = useState('');
   const [isAnswered, setIsAnswered] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
-  const { incrementScore, incrementErrors, getNextQuestion, addWeakness } = useQuiz();
+  const { incrementScore, incrementErrors, getNextQuestion, addWeakness, addWrongQuestion } = useQuiz();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isAnswered) return;
+
+    const normalizedUserAnswer = userAnswer.trim().toLowerCase();
+    const normalizedCorrectOutput = question.correctOutput.trim().toLowerCase();
     
-    setIsAnswered(true);
-    
-    // Check if answer is correct (trim whitespace for comparison)
-    const correct = answer.trim() === question.correctOutput.trim();
+    const correct = normalizedUserAnswer === normalizedCorrectOutput;
     setIsCorrect(correct);
+    setIsAnswered(true);
     
     if (correct) {
       incrementScore();
     } else {
       incrementErrors();
       addWeakness(question.category);
+      addWrongQuestion({ ...question, type: 'output' });
     }
     
     // Move to next question after a delay
     setTimeout(() => {
       getNextQuestion();
-      setAnswer('');
+      setUserAnswer('');
       setIsAnswered(false);
     }, 2000);
   };
@@ -57,8 +59,8 @@ const OutputQuestion: React.FC<OutputQuestionProps> = ({ question }) => {
           </label>
           <textarea
             id="output"
-            value={answer}
-            onChange={(e) => setAnswer(e.target.value)}
+            value={userAnswer}
+            onChange={(e) => setUserAnswer(e.target.value)}
             disabled={isAnswered}
             className="w-full p-3 bg-slate-700 border border-slate-600 rounded-lg font-mono text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             rows={3}
@@ -68,7 +70,7 @@ const OutputQuestion: React.FC<OutputQuestionProps> = ({ question }) => {
         
         <button
           type="submit"
-          disabled={isAnswered || !answer.trim()}
+          disabled={isAnswered || !userAnswer.trim()}
           className={`px-6 py-2 rounded-lg font-bold transition-all ${
             isAnswered 
               ? 'bg-slate-600 cursor-not-allowed' 

@@ -16,11 +16,15 @@ interface QuizContextType {
   questionsAnswered: number;
   currentQuestion: Question | null;
   weaknesses: string[];
+  answeredQuestions: string[];
+  wrongQuestions: Question[];
+  showCongratulations: boolean;
+  getNextQuestion: () => void;
   incrementScore: () => void;
   incrementErrors: () => void;
-  getNextQuestion: () => void;
   resetQuiz: () => void;
   addWeakness: (category: string) => void;
+  addWrongQuestion: (question: Question) => void;
 }
 
 // Create context
@@ -34,6 +38,8 @@ export const QuizProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
   const [weaknesses, setWeaknesses] = useState<string[]>([]);
   const [answeredQuestions, setAnsweredQuestions] = useState<string[]>([]);
+  const [wrongQuestions, setWrongQuestions] = useState<Question[]>([]);
+  const [showCongratulations, setShowCongratulations] = useState(false);
 
   // Get a random question that hasn't been answered yet
   const getNextQuestion = useCallback(() => {
@@ -42,10 +48,16 @@ export const QuizProvider: React.FC<{ children: React.ReactNode }> = ({ children
       (q) => !answeredQuestions.includes(q.id)
     );
     
-    // If all questions have been answered, reset the answered questions (but keep other stats)
+    // If all questions have been answered correctly
+    if (availableQuestions.length === 0 && errors === 0) {
+      setShowCongratulations(true);
+      setCurrentQuestion(null);
+      return;
+    }
+    
+    // If all questions have been answered but there were errors
     if (availableQuestions.length === 0) {
-      setAnsweredQuestions([]);
-      setCurrentQuestion(questionsData[Math.floor(Math.random() * questionsData.length)] as Question);
+      setCurrentQuestion(null);
       return;
     }
     
@@ -59,7 +71,7 @@ export const QuizProvider: React.FC<{ children: React.ReactNode }> = ({ children
       type: nextQuestion.type as 'multiple-choice' | 'output' | 'correction',
     });
     setAnsweredQuestions((prev) => [...prev, nextQuestion.id]);
-  }, [answeredQuestions]);
+  }, [answeredQuestions, errors]);
 
   const incrementScore = useCallback(() => {
     setScore((prev) => prev + 1);
@@ -72,29 +84,44 @@ export const QuizProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const resetQuiz = useCallback(() => {
+    setScore(0);
     setErrors(0);
+    setQuestionsAnswered(0);
     setCurrentQuestion(null);
     setAnsweredQuestions([]);
+    setWrongQuestions([]);
+    setShowCongratulations(false);
+    setWeaknesses([]);
   }, []);
 
   const addWeakness = useCallback((category: string) => {
-    setWeaknesses((prev) => [...prev, category]);
+    setWeaknesses((prev) => [...new Set([...prev, category])]);
   }, []);
 
-  const value = {
-    score,
-    errors,
-    questionsAnswered,
-    currentQuestion,
-    weaknesses,
-    incrementScore,
-    incrementErrors,
-    getNextQuestion,
-    resetQuiz,
-    addWeakness,
-  };
+  const addWrongQuestion = useCallback((question: Question) => {
+    setWrongQuestions((prev) => [...prev, question]);
+  }, []);
 
-  return <QuizContext.Provider value={value}>{children}</QuizContext.Provider>;
+  return (
+    <QuizContext.Provider value={{
+      score,
+      errors,
+      questionsAnswered,
+      currentQuestion,
+      weaknesses,
+      answeredQuestions,
+      wrongQuestions,
+      showCongratulations,
+      getNextQuestion,
+      incrementScore,
+      incrementErrors,
+      resetQuiz,
+      addWeakness,
+      addWrongQuestion
+    }}>
+      {children}
+    </QuizContext.Provider>
+  );
 };
 
 // Custom hook for using the context
